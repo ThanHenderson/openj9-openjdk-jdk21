@@ -23,6 +23,12 @@
  * questions.
  */
 
+ /*
+ * ===========================================================================
+ * (c) Copyright IBM Corp. 2024, 2024 All Rights Reserved
+ * ===========================================================================
+ */
+
 package java.lang.invoke;
 
 import jdk.internal.misc.CDS;
@@ -172,7 +178,7 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         implMethodName = implInfo.getName();
         implMethodDesc = implInfo.getMethodType().toMethodDescriptorString();
         constructorType = factoryType.changeReturnType(Void.TYPE);
-        lambdaClassName = lambdaClassName(targetClass);
+        lambdaClassName = this.lambdaClassName(targetClass);
         // If the target class invokes a protected method inherited from a
         // superclass in a different package, or does 'invokespecial', the
         // lambda class has no access to the resolved method. Instead, we need
@@ -196,13 +202,19 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         }
     }
 
-    private static String lambdaClassName(Class<?> targetClass) {
+    private String lambdaClassName(Class<?> targetClass) {
         String name = targetClass.getName();
         if (targetClass.isHidden()) {
             // use the original class name
             name = name.replace('/', '_');
         }
-        return name.replace('.', '/') + "$$Lambda";
+        int uniqueID =  targetClass.getName().hashCode()
+                        ^ interfaceMethodName.hashCode()
+                        ^ factoryType.toString().hashCode()
+                        ^ interfaceMethodType.toString().hashCode()
+                        ^ dynamicMethodType.toString().hashCode();
+        uniqueID &= 0x7fffffff;
+        return name.replace('.', '/') + "$$Lambda$" + uniqueID;
     }
 
     /**
@@ -253,36 +265,13 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
      * registers the lambda proxy class for including into the CDS archive.
      */
     private Class<?> spinInnerClass() throws LambdaConversionException {
-        // CDS does not handle disableEagerInitialization or useImplMethodHandle
-        if (!disableEagerInitialization && !useImplMethodHandle) {
-            // include lambda proxy class in CDS archive at dump time
-            if (CDS.isDumpingArchive()) {
-                Class<?> innerClass = generateInnerClass();
-                LambdaProxyClassArchive.register(targetClass,
-                                                 interfaceMethodName,
-                                                 factoryType,
-                                                 interfaceMethodType,
-                                                 implementation,
-                                                 dynamicMethodType,
-                                                 isSerializable,
-                                                 altInterfaces,
-                                                 altMethods,
-                                                 innerClass);
-                return innerClass;
-            }
+        // Class<?> innerClass = MethodHandleNatives.findInSCC(lambdaClassName, caller.lookupClass());
+        // System.err.println("spinning host: " + caller.lookupClass().getName());
+        // if (innerClass == null) {
+        //     innerClass = generateInnerClass();
+        // }
 
-            // load from CDS archive if present
-            Class<?> innerClass = LambdaProxyClassArchive.find(targetClass,
-                                                               interfaceMethodName,
-                                                               factoryType,
-                                                               interfaceMethodType,
-                                                               implementation,
-                                                               dynamicMethodType,
-                                                               isSerializable,
-                                                               altInterfaces,
-                                                               altMethods);
-            if (innerClass != null) return innerClass;
-        }
+        // return innerClass;
         return generateInnerClass();
     }
 

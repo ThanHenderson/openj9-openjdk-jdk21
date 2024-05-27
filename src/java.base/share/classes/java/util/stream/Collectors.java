@@ -1102,6 +1102,9 @@ public final class Collectors {
         Supplier<A> downstreamSupplier = downstream.supplier();
         BiConsumer<A, ? super T> downstreamAccumulator = downstream.accumulator();
         BiConsumer<Map<K, A>, T> accumulator = (m, t) -> {
+            // System.err.println("m: " +m.toString());
+            // System.err.println("t: " +t.toString());
+            // System.err.println("classifier: " +classifier.toString());
             K key = Objects.requireNonNull(classifier.apply(t), "element cannot be mapped to a null key");
             A container = m.computeIfAbsent(key, k -> downstreamSupplier.get());
             downstreamAccumulator.accept(container, t);
