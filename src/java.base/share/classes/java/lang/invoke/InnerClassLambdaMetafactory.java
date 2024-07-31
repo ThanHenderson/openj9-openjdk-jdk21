@@ -23,6 +23,12 @@
  * questions.
  */
 
+/*
+ * ===========================================================================
+ * (c) Copyright IBM Corp. 2024, 2024 All Rights Reserved
+ * ===========================================================================
+ */
+
 package java.lang.invoke;
 
 import jdk.internal.misc.CDS;
@@ -172,7 +178,29 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         implMethodName = implInfo.getName();
         implMethodDesc = implInfo.getMethodType().toMethodDescriptorString();
         constructorType = factoryType.changeReturnType(Void.TYPE);
-        lambdaClassName = lambdaClassName(targetClass);
+        String rawUniqueID = targetClass.getName()
+                           + factoryType.toString()
+                           + interfaceMethodName
+                           + interfaceMethodType.toString()
+                           + dynamicMethodType.toString()
+                           + implMethodClassName
+                           + implMethodName
+                           + implMethodDesc;
+        StringBuilder encodedUniqueID = new StringBuilder();
+        String parentheses = "(){}[]<>";
+        for (int i = 0; i < rawUniqueID.length(); i++) {
+            char currentChar = rawUniqueID.charAt(i);
+            if (Character.isLetterOrDigit(currentChar)) {
+                encodedUniqueID.append(currentChar);
+            } else {
+                if (parentheses.indexOf(currentChar) != -1) {
+                    encodedUniqueID.append("__");
+                } else {
+                    encodedUniqueID.append('_');
+                }
+            }
+        }
+        lambdaClassName = lambdaClassName(targetClass) + "$" + encodedUniqueID.toString();
         // If the target class invokes a protected method inherited from a
         // superclass in a different package, or does 'invokespecial', the
         // lambda class has no access to the resolved method. Instead, we need
@@ -295,6 +323,10 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
      * is not found
      */
     private Class<?> generateInnerClass() throws LambdaConversionException {
+        Class<?> innerClass = MethodHandleNatives.findLambdaInSCC(lambdaClassName, targetClass);
+        if (innerClass != null) {
+            return innerClass;
+        }
         String[] interfaceNames;
         String interfaceName = interfaceClass.getName().replace('.', '/');
         boolean accidentallySerializable = !isSerializable && Serializable.class.isAssignableFrom(interfaceClass);

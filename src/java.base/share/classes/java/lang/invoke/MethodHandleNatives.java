@@ -56,6 +56,8 @@ class MethodHandleNatives {
 
     static native void init(MemberName self, Object ref);
     static native void expand(MemberName self);
+    static native Class<?> findLambdaInSCC(String classname, Class<?> hostClass);
+    static native Class<?> findLambdaFormInSCC(String classname, Class<?> hostClass);
     static native MemberName resolve(MemberName self, Class<?> caller, int lookupMode,
             boolean speculativeResolve) throws LinkageError, ClassNotFoundException;
 
