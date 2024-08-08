@@ -323,10 +323,10 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
      * is not found
      */
     private Class<?> generateInnerClass() throws LambdaConversionException {
-        Class<?> innerClass = MethodHandleNatives.findLambdaInSCC(lambdaClassName, targetClass);
-        if (innerClass != null) {
-            return innerClass;
-        }
+        // Class<?> innerClass = MethodHandleNatives.findLambdaInSCC(lambdaClassName, targetClass);
+        // if (innerClass != null) {
+        //     return innerClass;
+        // }
         String[] interfaceNames;
         String interfaceName = interfaceClass.getName().replace('.', '/');
         boolean accidentallySerializable = !isSerializable && Serializable.class.isAssignableFrom(interfaceClass);
